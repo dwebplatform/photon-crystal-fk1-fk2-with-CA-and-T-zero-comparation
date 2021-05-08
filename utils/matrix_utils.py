@@ -25,10 +25,15 @@ def getMatrixAbsDirect(matrix):
     matrix[1][0] = np.absolute( matrix[1][0])* np.absolute( matrix[1][0])
     matrix[1][1] = np.absolute( matrix[1][1])* np.absolute( matrix[1][1])
     return matrix
+
+
 def getMatrixForLayer(pMatrix, dMatrix, pMatrixReveresed):
     res = np.dot(pMatrix, dMatrix)
     res = np.dot(res, pMatrixReveresed)
     return res
+
+def getMatrixForLayerInstance(layer):
+    return  getMatrixForLayer(layer.getPMatrix(),  layer.getDMatrix(), layer.getPReverseMatrix())
 def getReflection(matrix):
     A = matrix[0][0]
     C = matrix[1][0]

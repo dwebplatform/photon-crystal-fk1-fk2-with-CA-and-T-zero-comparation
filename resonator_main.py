@@ -9,7 +9,7 @@ import sys
 sys.path.append('./utils')
 from matrix_utils import getSuperMatrix,getLeftMatrix, getRightMatrix, getPMatrix, getRefractiveFromList, getReflection, getMatrixAbsDirect, getThreeCalcMatrix
 from reader_utils import mutateTxtData, readTransmittanceForTEZeroDegrees, readExperimentalData,readExperimentalDataFromThreeCols, readExperimentalDataForRefractive
-from layer_utils import getResultMatrix, matrixForPeriod,matrixForLayer
+from layer_utils import  getMatrixPower, getResultMatrix, matrixForPeriod,matrixForLayer
 from collection_utils import  converDictToArray
 sys.path.append('./layer_manager')
 from layer import Layer
@@ -46,8 +46,6 @@ yNGlass = []
 yTestData = []
 nPvkData =[]
 nCaData = []
- 
-
 """ns стекло, n1 PVK, n2 CA"""
 for (lamda, n1, n2, ns) in zip(lamdaList, PVKDataList, CADataList, glassDataList):
     if lamda == 431:
@@ -56,13 +54,33 @@ for (lamda, n1, n2, ns) in zip(lamdaList, PVKDataList, CADataList, glassDataList
     """ширина слоя h1, h2, и число периодов"""
     [h1, h2, d] = [45.5, 119,10]
     """первый , второй слои и слой стекла """
-    [layerFirst, layerSecond, glassLayer] = [Layer(lamda, n1, h1), Layer(lamda, n2, h2),Layer(lamda, ns, 1000000)]
-    # [layerFirst, layerSecond] = [Layer(lamda, 1.683, h1), Layer(lamda, 1.475, h2)]
+    [glassLayer] = [Layer(lamda, ns, 1000000)]
+
+    """ левое зеркало""" 
+    # ПВК 48 нм и СА 137 нм
+    [hLeftPVKLayer, hLeftCALayer] =[45.5, 119]
+    [leftLayerFirst,leftLayerSecond] = [Layer(lamda, n1, hLeftPVKLayer), Layer(lamda, n2, hLeftCALayer)]
+
+    """ правое зеркало"""
+    # ПВК 48 нм и СА 137 нм
+    [hRightPVKLayer, hRightCALayer] =[48, 137]
+    [rightLayerFirst,rightLayerSecond] = [Layer(lamda, n1, hRightPVKLayer), Layer(lamda, n2, hRightCALayer)]
+
+
     """allLayersMatrix - матрица всех периодов PSMatrix - последний слой стекло  """ 
-    allLayersMatrix, PSMatrix = (getResultMatrix([layerFirst, layerSecond], d), getPMatrix(layerFirst.alfa0, ns))
     
+    """потом слой СА 146 нм (т.е. 2 слоя СА на стыке, так получилось), 
+    потом слой ПВК 48 нм, 
+    потом слой СА 215 нм, далее"""
+
+    middleLayers = [Layer(lamda,n2,146),Layer(lamda,n1,48),Layer(lamda,n2,215)]
+    middleMatrix = Layer.getMiddleLayerForResonator(middleLayers)
+    allLeftMatrix, allRightMatrix = (getMatrixPower([leftLayerFirst, leftLayerSecond], 7),getMatrixPower([rightLayerFirst, rightLayerSecond], 8))
+    layersWithMiddle = getThreeCalcMatrix(allLeftMatrix,middleMatrix,allRightMatrix)
+    allLayersMatrix = Layer.getMatrixWithPInversed(leftLayerFirst,layersWithMiddle)
+    PSMatrix = getPMatrix(glassLayer.alfa0, ns)
     """левая и правая матрица"""
-    leftMatrix, rightMatrix = (getLeftMatrix(allLayersMatrix, PSMatrix), getRightMatrix(glassLayer,layerFirst))
+    leftMatrix, rightMatrix = (getLeftMatrix(allLayersMatrix, PSMatrix), getRightMatrix(glassLayer,glassLayer))
     superResultMatrix = getSuperMatrix(leftMatrix, glassLayer, rightMatrix)
     """вычисляем коэффициент отражения"""
     [r, T, R] = getPlotData(allLayersMatrix, superResultMatrix)
@@ -84,10 +102,10 @@ def derivative(f, a, h=0.001):
 xInterpolated = CubicSpline(lamdaList, txData, bc_type='natural')
 yInterpolated = CubicSpline(lamdaList, tyData, bc_type='natural')
 densityOfModesPlot = []
-
-
+ 
+  
 zeroTData = readTransmittanceForTEZeroDegrees('TE_пропускание_длинноволновый_0_град.txt')
 
-plt.plot(lamdaList, zeroTData, linestyle='--')
+plt.plot(lamdaList, yTestData, 'red')
 
 plt.show()

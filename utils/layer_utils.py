@@ -1,6 +1,7 @@
 import numpy as np
 from numpy import linalg as LA
 from matrix_utils import getPMatrix
+
 def matrixForPeriod(layers):
     [M1Matrix, M2Matrix] = map(matrixForLayer, layers)
     MofTwoMatrix = np.dot(M1Matrix, M2Matrix)
@@ -18,6 +19,11 @@ def getResultMatrix(layers, d):
     return resultMatrix
 
 
+# layers =[layerFirst, layerSecond]
+def getMatrixPower(layers,d):
+    [layerFirst, layerSecond] = layers
+    AllMMatrix = LA.matrix_power(matrixForPeriod(layers), d)
+    return AllMMatrix
 
 def getResultMatrixWithCa(layers, lastCaLayer, d):
     [layerFirst, layerSecond] = layers

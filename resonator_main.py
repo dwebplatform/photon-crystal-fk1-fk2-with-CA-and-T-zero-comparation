@@ -74,10 +74,15 @@ for (lamda, n1, n2, ns) in zip(lamdaList, PVKDataList, CADataList, glassDataList
     потом слой СА 215 нм, далее"""
 
     middleLayers = [Layer(lamda,n2,146),Layer(lamda,n1,48),Layer(lamda,n2,215)]
+
     middleMatrix = Layer.getMiddleLayerForResonator(middleLayers)
+
     allLeftMatrix, allRightMatrix = (getMatrixPower([leftLayerFirst, leftLayerSecond], 7),getMatrixPower([rightLayerFirst, rightLayerSecond], 8))
+    
     layersWithMiddle = getThreeCalcMatrix(allLeftMatrix,middleMatrix,allRightMatrix)
+
     allLayersMatrix = Layer.getMatrixWithPInversed(leftLayerFirst,layersWithMiddle)
+    
     PSMatrix = getPMatrix(glassLayer.alfa0, ns)
     """левая и правая матрица"""
     leftMatrix, rightMatrix = (getLeftMatrix(allLayersMatrix, PSMatrix), getRightMatrix(glassLayer,glassLayer))

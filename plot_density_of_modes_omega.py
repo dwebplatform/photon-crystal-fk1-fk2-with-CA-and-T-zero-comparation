@@ -49,21 +49,34 @@ alfa0 = (math.pi/180)*0
 
 nData = []
 yTestData = []
-nCAData =[]
+nCAData = []
 omegaList = createOmegaList(280, 800)
 c = 300000000
 
-n1, n2, ns, h1, h2, d =(1.475,1.648,1, 50,150,10)
+
+
+
+def plotSettings():
+  axes = plt.gca()
+  axes.set_xlabel('ω, 1/c')
+  axes.set_ylabel('ρ(ω), отн.ед.')
+  axes.set_xlim([2*math.pi*c/800,2*math.pi*c/280])
+  # axes.set_ylim([0,100])
+
+
+
+angles = [(60,'brown')]
+# ФК 2
+n1, n2, ns, h1, h2, d = (1.475,1.648, 1, 50, 120, 10)
 """ массив tx, ty """
-txData, tyData = getTransferIndexList(omegaList,n1, n2, ns, h1, h2, d)
+for (angle, color) in angles:
+  txData, tyData = getTransferIndexList(omegaList,n1, n2, ns, h1, h2, d,angle)
+  xInterpolated, yInterpolated = getInterpolatedForDensity(txData, tyData,omegaList)
+  densityOfModesPlot = getDensityFromOmega(2000, omegaList,xInterpolated, yInterpolated)
+  plotSettings()
+  plt.plot(omegaList, np.absolute(densityOfModesPlot), color)
 
-(xInterpolated,yInterpolated) = getInterpolatedForDensity(txData, tyData,omegaList)
 
-derivativeXData = []
-derivativeYData = []
 
-xInterpolatedData = []
-
-densityOfModesPlot = getDensityFromOmega(200_0,omegaList,xInterpolated, yInterpolated)
-plt.plot(omegaList, np.absolute(densityOfModesPlot), 'y')
 plt.show()
+

@@ -2,8 +2,8 @@ import numpy as np
 import math
 
 from plot_utils import getPlotData
-from layer_utils import getResultMatrix
-from matrix_utils import getPMatrix, getReflection
+from layer_utils import getResultMatrix, getMatrixPower
+from matrix_utils import getPMatrix, getReflection, getThreeCalcMatrix, getLeftMatrix, getRightMatrix, getSuperMatrix
 import scipy.signal
 from scipy.interpolate import CubicSpline, UnivariateSpline, interp1d
 import sys
@@ -29,10 +29,47 @@ def getTransferForMatrix(matrix):
     R = matrix[1][0]/matrix[0][0]
     return [r, T, R]
 
-def getTransferIndexList(omegaList,n1, n2, ns, h1, h2, d):
+
+def getTransferForIndexListResonator(omegaList,n1, n2, ns, h1, h2, d, alfa=None):
   txData,tyData = ([],[]) 
   for omega in omegaList:
-    [layerFirst, layerSecond] = [LayerOmega(omega, n1, h1), LayerOmega(omega, n2, h2)]
+    [glassLayer] = [LayerOmega(omega, ns, 1000000,alfa)]
+
+    """ левое зеркало""" 
+      # ПВК 48 нм и СА 137 нм
+    [hLeftPVKLayer, hLeftCALayer] =[45.5, 119]
+    [leftLayerFirst,leftLayerSecond] = [LayerOmega(omega, n1, hLeftPVKLayer,alfa), LayerOmega(omega, n2, hLeftCALayer,alfa)]
+
+    """ правое зеркало"""
+      # ПВК 48 нм и СА 137 нм
+    [hRightPVKLayer, hRightCALayer] =[48, 137]
+    [rightLayerFirst,rightLayerSecond] = [LayerOmega(omega, n1, hRightPVKLayer,alfa), LayerOmega(omega, n2, hRightCALayer,alfa)]
+
+
+    """allLayersMatrix - матрица всех периодов PSMatrix - последний слой стекло  """ 
+      
+    """потом слой СА 146 нм (т.е. 2 слоя СА на стыке, так получилось), 
+    потом слой ПВК 48 нм, 
+    потом слой СА 215 нм, далее"""
+    middleMatrix = LayerOmega.getMiddleLayerForResonator([LayerOmega(omega,n2,146,alfa),LayerOmega(omega,n1,48,alfa),LayerOmega(omega,n2,215,alfa)])
+    allLeftMatrix, allRightMatrix = (getMatrixPower([leftLayerFirst, leftLayerSecond], 7), getMatrixPower([rightLayerFirst, rightLayerSecond], 8))
+    layersWithMiddle = getThreeCalcMatrix(allLeftMatrix,middleMatrix,allRightMatrix)
+
+    allLayersMatrix = LayerOmega.getMatrixWithPInversed(leftLayerFirst,layersWithMiddle)
+    PSMatrix = getPMatrix(glassLayer.alfa0, ns)
+    """левая и правая матрица"""
+    leftMatrix, rightMatrix = (getLeftMatrix(allLayersMatrix, PSMatrix), getRightMatrix(glassLayer,glassLayer))
+    superResultMatrix = getSuperMatrix(leftMatrix, glassLayer, rightMatrix)
+    """вычисляем коэффициент отражения"""
+    [r, T, R] = getPlotData(allLayersMatrix, superResultMatrix)
+    txData.append(T.real)
+    tyData.append(T.imag)
+  return (txData,tyData) 
+
+def getTransferIndexList(omegaList,n1, n2, ns, h1, h2, d, alfa=None):
+  txData,tyData = ([],[]) 
+  for omega in omegaList:
+    [layerFirst, layerSecond] = [LayerOmega(omega, n1, h1,alfa), LayerOmega(omega, n2, h2,alfa)]
     """матрица всех периодов"""
     resultMatrix = getResultMatrix([layerFirst, layerSecond], d)
     """последний слой стекло"""
@@ -48,12 +85,21 @@ def getTransferIndexList(omegaList,n1, n2, ns, h1, h2, d):
 def derivative(f, a, h=0.001):
     return (f(a + h) - f(a - h))/(2*h)
 
+def getDensityFromOmegaResonator(D,omegaList,xInterpolated,yInterpolated):
+  densityOfModesArray = []
+  for omega in omegaList:
+    [x, y] = [xInterpolated(omega), yInterpolated(omega)]
+    [xDerive, yDerive] = [derivative(xInterpolated, omega), derivative(yInterpolated, omega)]
+    densityOfModes = (1/D)*((yDerive *x - xDerive * y)) /(x * x + y * y)
+    densityOfModesArray.append(densityOfModes) 
+  return  densityOfModesArray
+
 def getDensityFromOmega(D,omegaList,xInterpolated,yInterpolated):
   densityOfModesArray = []
   for omega in omegaList:
     [x, y] = [xInterpolated(omega), yInterpolated(omega)]
     [xDerive, yDerive] = [derivative(xInterpolated, omega), derivative(yInterpolated, omega)]
-    densityOfModes = (1/D)*((yDerive *x - xDerive * y)) / (x * x + y * y)
+    densityOfModes = (1/D)*((yDerive *x - xDerive * y)) /(x * x + y * y)
     densityOfModesArray.append(densityOfModes) 
   return  densityOfModesArray
 def getInterpolatedForDensity(txData,tyData, omegaList):

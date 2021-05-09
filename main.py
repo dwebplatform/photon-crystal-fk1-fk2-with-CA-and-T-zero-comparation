@@ -101,7 +101,6 @@ densityOfModesPlot = []
 
 for lamda in range(280,800):
     [x,y] = [xInterpolated(lamda),yInterpolated(lamda)]
-    print(x,y)
 # for lamda in range(280, 800):
 #         [x, y] = [xInterpolated(lamda), yInterpolated(lamda)]
 #         [xDerive, yDerive] = [derivative(
